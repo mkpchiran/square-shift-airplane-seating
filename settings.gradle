@@ -8,6 +8,5 @@
  */
 
 rootProject.name = 'airplane-seating'
-include('lib')
-include ('cli')
+include('lib', 'cli')
 
