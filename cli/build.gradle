@@ -1,0 +1,126 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'com.github.sherter.google-java-format' version "${googleJavaFormatterVersion}"
+    id "org.sonarqube" version "${sonarVersion}"
+    id 'info.solidsoft.pitest' version "${pitestVersion}"
+    id 'org.owasp.dependencycheck' version "${owaspVersion}"
+    id "com.github.spotbugs" version "${spotBugVersion}"
+}
+
+version = libVersion
+sourceCompatibility = "11"
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+    testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    implementation "com.squareshift.assignment:core:${libVersion}"
+
+    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
+    implementation 'org.apache.logging.log4j:log4j-core:2.16.0'
+
+    implementation 'org.apache.poi:poi:5.1.0'
+    implementation 'org.apache.poi:poi-ooxml:5.1.0'
+
+    implementation "com.google.inject:guice:${guiceVersion}"
+
+    testImplementation "org.mockito:mockito-core:3.+"
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    manifest {
+        attributes "Main-Class": "com.squareshift.assignment.Application"
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+test {
+    useJUnitPlatform()
+}
+jacoco {
+    toolVersion = "${jacocoVersion}"
+    reportsDir(file("$buildDir/jacoco"))
+}
+
+googleJavaFormat {
+    toolVersion = "${googleFormatToolVersion}"
+}
+
+spotbugs {
+    toolVersion = "${spotBugToolVersion}"
+    ignoreFailures = true
+    showStackTraces = true
+}
+
+task javadocs(type: Javadoc) {
+    source = sourceSets.main.allJava
+    classpath = sourceSets.main.runtimeClasspath
+
+}
+
+task packageJavadoc(type: Jar) {
+    classifier 'javadoc'
+    from javadoc
+}
+
+task sourceJar(type: Jar) {
+    classifier 'sources'
+    from sourceSets.main.allJava
+}
+
+jacocoTestReport {
+    dependsOn test
+    mustRunAfter test
+    reports {
+        xml.enabled true
+        xml.destination file("$buildDir/jacoco/xml/jacoco.xml")
+        html.destination file("${buildDir}/reports/coverage/test")
+    }
+    executionData(test)
+}
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId "${group}"
+            artifactId 'cli'
+            version "${version}"
+
+            from components.java
+            artifact tasks.sourceJar
+        }
+    }
+}
+
+sonarqube {
+    // this is silly but specifying the actual settings file is not supported
+    properties {
+        property 'sonar.sourceEncoding', 'UTF-8'
+        property 'sonar.projectVersion', "${libVersion}"
+        def props = new Properties()
+        file("sonar.properties").withInputStream { props.load(it) }
+        props.each {
+            property("${it.key}", "${it.value}")
+        }
+    }
+}
+tasks.named('test') {
+    // Use JUnit Platform for unit tests.
+    useJUnitPlatform()
+}
+targetCompatibility = JavaVersion.VERSION_11
