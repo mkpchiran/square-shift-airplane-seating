@@ -11,10 +11,3 @@ Steps to Setup
 3. Build CLI application .\gradlew :cli:clean build
 4. Publish CLI application to Maven Local .\gradlew :cli:publishToMaven
 5. Run CLI app java -jar .\cli\build\libs\cli-1.0.0.jar
-
-
-
-
-
-run cli application 
-java -jar 
